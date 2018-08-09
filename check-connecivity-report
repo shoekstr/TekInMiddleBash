@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+RECIEPIENT=$(</etc/reportUser)
+CONNECTIVITY_REPORT="/usr/local/bin/check-connecivity-report"
+MODEM_REPORT="/usr/local/bin/dpc3848v-report"
 INTERNAL_TEST="http://192.168.0.1/Docsis_system.php"
 INTERNAL_NAME="The Modem"
 EXTERNAL_TEST="https://www.google.ca/"
@@ -25,9 +28,23 @@ if [[ $CONNECTED -eq 1 ]]
         EXT_TEXT="CAN"
     fi
     OUTLINE="${DATE}: Ethernet is CONNECTED with an ip address of ${IP}. I ${INT_TEXT} communicate with ${INTERNAL_NAME} and I ${EXT_TEXT} communicate with ${EXTERNAL_NAME}" 
+
+    IFS=$(echo -en "\n\b")    
+    for REPORT in /var/log/modem-report-*
+    do
+      [-e "$REPORT" ] && $(mail -s "Offline Modem Report" $RECIEPIENT < "$REPORT") && $(rm "$REPORT")
+    done
+
+    for REPORT in /var/log/downtime-report-*
+    do
+      [-e "$REPORT" ] && $(mail -s "Downtime Report" $RECIEPIENT < "$REPORT") && $(rm "$REPORT")
+    done
+
 fi
 if [[ $CONNECTED -eq 0 ]]
   then
     OUTLINE="${DATE}: Ethernet is DISCONNECTED"
+    $("${CONNECTIVITY_REPORT}")
+    $("${MODEM_REPORT}")
 fi
 $(echo "$OUTLINE" >> "$LOGFILE")
